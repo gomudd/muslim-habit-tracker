@@ -7,11 +7,6 @@ app = FastAPI()
 def read_root():
     return {"message": "Assalamualaikum! Muslim Habit Tracker backend is alive."}
 
-
-@app.get("/")
-def read_root():
-    return {"message": "Assalamualaikum! Muslim Habit Tracker backend is alive."}
-
 @app.get("/prayer-times")
 def get_prayer_times(city: str = "Doha", country: str = "Qatar"):
     response = requests.get(
