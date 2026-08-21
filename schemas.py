@@ -14,3 +14,8 @@ class UserOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class PrayerReminder(BaseModel):
+    enabled: bool
+    minutes_before: int
+    vibrate: bool = True

@@ -1,13 +1,14 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from typing import Dict
 import requests
 import bcrypt
 
 from database import Base, engine, get_db
 from models import User
-from schemas import UserCreate, UserOut
-from auth import verify_password, create_access_token
+from schemas import UserCreate, UserOut, PrayerReminder
+from auth import verify_password, create_access_token, get_current_user
 
 app = FastAPI()
 
@@ -51,3 +52,28 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
     access_token = create_access_token(data={"sub": user.email})
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.get("/me", response_model=UserOut)
+def read_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
+@app.get("/me/reminders")
+def get_reminders(current_user: User = Depends(get_current_user)):
+    return current_user.reminder_settings
+
+
+@app.put("/me/reminders")
+def update_reminders(
+    updates: Dict[str, PrayerReminder],
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    settings = dict(current_user.reminder_settings or {})
+    for prayer, pref in updates.items():
+        settings[prayer] = pref.dict()
+    current_user.reminder_settings = settings
+    db.commit()
+    db.refresh(current_user)
+    return current_user.reminder_settings
