@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Muslim Habit Tracker - Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 500px; margin: 40px auto; padding: 0 20px; background: #f7f7f5; }
+    h1 { font-size: 20px; }
+    .card { background: white; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    label { display: block; margin-top: 8px; font-size: 14px; }
+    input { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+    button { margin-top: 12px; padding: 8px 16px; background: #2c7a4b; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    .prayer-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #eee; }
+    .quote { font-style: italic; color: #444; }
+    #error { color: #b00020; margin-top: 8px; }
+    #dashboard { display: none; }
+  </style>
+</head>
+<body>
+  <h1>Muslim Habit Tracker</h1>
+
+  <div class="card" id="login-card">
+    <h2>Log in</h2>
+    <label>Email</label>
+    <input type="email" id="email">
+    <label>Password</label>
+    <input type="password" id="password">
+    <button onclick="login()">Log in</button>
+    <div id="error"></div>
+  </div>
+
+  <div id="dashboard">
+    <div class="card">
+      <h2>Today's Prayer Times — <span id="location"></span></h2>
+      <div id="prayer-times"></div>
+    </div>
+
+    <div class="card">
+      <h2>Your Reminders</h2>
+      <div id="reminders"></div>
+    </div>
+
+    <div class="card quote">
+      "Indeed, with hardship comes ease." — Qur'an 94:6
+    </div>
+  </div>
+
+  <script>
+    let token = null;
+
+    async function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const body = new URLSearchParams();
+      body.append("username", email);
+      body.append("password", password);
+
+      const res = await fetch("/login", { method: "POST", body });
+      if (!res.ok) {
+        document.getElementById("error").innerText = "Login failed — check your email and password.";
+        return;
+      }
+      const data = await res.json();
+      token = data.access_token;
+      document.getElementById("login-card").style.display = "none";
+      document.getElementById("dashboard").style.display = "block";
+      loadDashboard();
+    }
+
+    async function loadDashboard() {
+      const me = await fetch("/me", { headers: { Authorization: "Bearer " + token } }).then(r => r.json());
+      document.getElementById("location").innerText = me.city + ", " + me.country;
+
+      const times = await fetch(`/prayer-times?city=${me.city}&country=${me.country}`).then(r => r.json());
+      const prayerList = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"];
+      document.getElementById("prayer-times").innerHTML = prayerList
+        .map(p => `<div class="prayer-row"><span>${p}</span><span>${times[p]}</span></div>`)
+        .join("");
+
+      const reminders = await fetch("/me/reminders", { headers: { Authorization: "Bearer " + token } }).then(r => r.json());
+      document.getElementById("reminders").innerHTML = Object.entries(reminders)
+        .map(([prayer, r]) => `<div class="prayer-row"><span>${prayer}</span><span>${r.enabled ? "On, " + r.minutes_before + " min before" : "Off"}</span></div>`)
+        .join("");
+    }
+  </script>
+</body>
+</html>

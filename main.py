@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from typing import Dict
 import requests
@@ -77,3 +78,9 @@ def update_reminders(
     db.commit()
     db.refresh(current_user)
     return current_user.reminder_settings
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard():
+    with open("templates/dashboard.html") as f:
+        return f.read()
